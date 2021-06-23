@@ -11,14 +11,11 @@ import ErrorOutlineOutlinedIcon from "@material-ui/icons/ErrorOutlineOutlined";
 import VisibilityIcon from '@material-ui/icons/Visibility';
 import VisibilityOffIcon from '@material-ui/icons/VisibilityOff';
 import Alert from '@material-ui/lab/Alert';
+import axios from 'axios'
 
 const initialValues = {
   Email: "",
   Password: "",
-};
-
-const onSubmit = (values) => {
-  console.log(values);
 };
 
 const validate = (values) => {
@@ -38,6 +35,8 @@ const validate = (values) => {
 
 function Form({ open, handleOpen }) {
   const [ViewPassword, setViewPassword] = useState(false)
+  const [token, settoken] = useState("")
+  const [status, setstatus] = useState("success")
 
   const useStyle = makeStyles({
     form: {
@@ -66,13 +65,27 @@ function Form({ open, handleOpen }) {
 
   const formik = useFormik({
     initialValues,
-    onSubmit,
+    onSubmit: (values) => {
+      let form = new FormData();
+      form.append("username", values.Email)
+      form.append("password", values.Password)
+    
+      axios.post("http://localhost:8000/users/login", form)
+      .then(res => {
+        settoken("Login Was Successful")
+        setstatus("success")
+      })
+      .catch(err => {
+        settoken(err.response.data["detail"])
+        setstatus("error")
+      })
+    },
     validate,
   });
 
   return (
     <>
-    <Alert severity="success" fullWidth>Login Was Successful</Alert>
+    {token ? <Alert severity={status}>{token}</Alert> : null}
     <form
       action="#"
       method="POST"
@@ -159,7 +172,7 @@ function Form({ open, handleOpen }) {
       <Typography variant="caption" color="textSecondary" align="center">
         <div className={classes.divider}>
           <Divider />
-          <Typography variant="caption2" color="textSecondary">
+          <Typography variant="caption" color="textSecondary">
             Continue with
           </Typography>
           <Divider />
