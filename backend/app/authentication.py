@@ -35,7 +35,6 @@ def Authenticate_User(email: str, password: str):
     verified = verify_password(user["Password"], password)
     if not verified:
         raise HTTPException(401, detail="Password is Incorrect")
-
     return user
 
 def create_access_token(data, expires):

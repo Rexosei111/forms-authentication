@@ -180,19 +180,21 @@ function Form({ open, handleOpen }) {
       </Typography>
       <Button
         variant="outlined"
+        startIcon={<FacebookIcon />}
+        color="Secondary"
+        disableElevation
+        component="a"
+        href=" https://78fbac969342.ngrok.io/users/login/google"
+      >
+        Google
+      </Button>
+      <Button
+        variant="outlined"
         startIcon={<CropFreeIcon />}
         color="primary"
         onClick={handleOpen}
       >
         QR Code
-      </Button>
-      <Button
-        variant="contained"
-        startIcon={<FacebookIcon />}
-        color="primary"
-        disableElevation
-      >
-        Facebook
       </Button>
     </form>
     </>

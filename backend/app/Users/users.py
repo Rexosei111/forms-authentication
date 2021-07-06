@@ -1,13 +1,62 @@
-from fastapi import Depends, HTTPException, status, APIRouter
+from fastapi import Depends, HTTPException, status, APIRouter, Request, Query
 from fastapi.responses import ORJSONResponse
 from fastapi.security import OAuth2PasswordRequestForm
 from ..authentication import Authenticate_User, create_access_token
 from jose import JWTError, jwt
 from datetime import datetime, timedelta
+import google_auth_oauthlib.flow
+import os
+from starlette.responses import RedirectResponse
+
+scopes = ["https://www.googleapis.com/auth/userinfo.profile",
+          "openid", "https://www.googleapis.com/auth/userinfo.email"]
+
+flow = google_auth_oauthlib.flow.Flow.from_client_secrets_file(
+    os.path.join(os.getcwd(), "app", "Users", "client_secret.json"), scopes=scopes)
+
+flow.redirect_uri = 'https://78fbac969342.ngrok.io/users/login/google/auth'
+
+user = APIRouter(prefix="/users", default_response_class=ORJSONResponse)
+
+authorization_url, state = flow.authorization_url(
+    # Enable offline access so that you can refresh an access token without
+    # re-prompting the user for permission. Recommended for web server apps.
+    access_type='offline',
+    prompt="select_account",
+    # Enable incremental authorization. Recommended as a best practice.
+    include_granted_scopes='true')
 
 
+def credentials_to_dict(credentials):
+  return {'token': credentials.token,
+          'refresh_token': credentials.refresh_token,
+          'token_uri': credentials.token_uri,
+          'client_id': credentials.client_id,
+          'client_secret': credentials.client_secret,
+          'scopes': credentials.scopes}
 
-user = APIRouter(default_response_class=ORJSONResponse, prefix="/users")
+@user.get("/login/google")
+async def Google_Login(request: Request):
+    return RedirectResponse(authorization_url)
+
+
+@user.route('/users/login/google/auth')
+async def auth(request: Request, code: str = Query(...)):
+    flow = google_auth_oauthlib.flow.Flow.from_client_secrets_file(
+        os.path.join(os.getcwd(),
+        "app", "Users", "client_secret.json"),
+        scopes=scopes)
+
+    flow.redirect_uri = request.url_for("auth")
+    authorization_response = str(request.url)
+    # request.url returns a URL object which has not .lower method. In that case the '.fetch token' method returns an error because it can't convert the url in the authorization_response variable to lowercase case to check if it is starts with 'https://'. Therefore the 'request.url can be converted to string and It worked for me
+    flow.fetch_token(authorization_response=authorization_response)
+
+    credentials = flow.credentials
+    user_credentials = credentials_to_dict(credentials)
+    print(user_credentials)
+    return RedirectResponse(url="http://localhost:3000")
+
 
 @user.post("/login")
 async def Login(form_data: OAuth2PasswordRequestForm = Depends()):
