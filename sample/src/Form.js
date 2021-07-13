@@ -184,9 +184,8 @@ function Form({ open, handleOpen }) {
         color="Secondary"
         disableElevation
         component="a"
-        href=" https://78fbac969342.ngrok.io/users/login/google"
-      >
-        Google
+        href="https://7b06b7ec5ff2.ngrok.io/users/login/google">
+        google
       </Button>
       <Button
         variant="outlined"

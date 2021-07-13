@@ -5,7 +5,9 @@ from ..authentication import Authenticate_User, create_access_token
 from jose import JWTError, jwt
 from datetime import datetime, timedelta
 import google_auth_oauthlib.flow
+from ..database import db
 import os
+import httpx
 from starlette.responses import RedirectResponse
 
 scopes = ["https://www.googleapis.com/auth/userinfo.profile",
@@ -14,7 +16,7 @@ scopes = ["https://www.googleapis.com/auth/userinfo.profile",
 flow = google_auth_oauthlib.flow.Flow.from_client_secrets_file(
     os.path.join(os.getcwd(), "app", "Users", "client_secret.json"), scopes=scopes)
 
-flow.redirect_uri = 'https://78fbac969342.ngrok.io/users/login/google/auth'
+flow.redirect_uri = 'https://7b06b7ec5ff2.ngrok.io/users/login/google/auth'
 
 user = APIRouter(prefix="/users", default_response_class=ORJSONResponse)
 
@@ -26,6 +28,16 @@ authorization_url, state = flow.authorization_url(
     # Enable incremental authorization. Recommended as a best practice.
     include_granted_scopes='true')
 
+url = "https://www.googleapis.com/oauth2/v2/userinfo"
+
+def Add_to_db(details):
+    data = db.Users.insert_one(details)
+    return True
+
+async def get_userinfo(token):
+    async with httpx.AsyncClient() as client:
+        response = await client.get(url, headers={"Content-type": "Application/json", "Authorization": f"Bearer {token}"})
+        return response
 
 def credentials_to_dict(credentials):
   return {'token': credentials.token,
@@ -54,9 +66,14 @@ async def auth(request: Request, code: str = Query(...)):
 
     credentials = flow.credentials
     user_credentials = credentials_to_dict(credentials)
-    print(user_credentials)
-    return RedirectResponse(url="http://localhost:3000")
-
+    token = user_credentials["token"]
+    info = await get_userinfo(token)
+    info = dict(info.json())
+    detail = {"Email": info['email'], 'picture': info['picture'], "Name": info['name']}
+    if Add_to_db(details=detail):
+        return RedirectResponse(url="http://localhost:3000")
+    else:
+        return RedirectResponse(url=authorization_url)
 
 @user.post("/login")
 async def Login(form_data: OAuth2PasswordRequestForm = Depends()):
